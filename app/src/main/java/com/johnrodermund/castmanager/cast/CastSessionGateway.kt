@@ -7,16 +7,39 @@ import kotlinx.coroutines.flow.StateFlow
 interface CastSessionGateway {
     val connection: StateFlow<CastConnection>
 
+    /** The Cast Device's volume, from 0 to 1. */
+    val volume: StateFlow<Float>
+
     /** Asks the connected Cast Device to play [media] when collected, and reports what the Cast Device then does. */
     fun load(media: CastMedia): Flow<CastMediaStatus>
-}
 
-enum class CastMediaStatus { Playing, Finished, Failed }
+    fun play()
+
+    fun pause()
+
+    fun seekTo(positionMillis: Long)
+
+    fun stop()
+
+    fun setVolume(volume: Float)
+}
 
 sealed interface CastConnection {
     data object Disconnected : CastConnection
 
     data class Connected(val deviceName: String) : CastConnection
+}
+
+sealed interface CastMediaStatus {
+    data object Playing : CastMediaStatus
+
+    data object Paused : CastMediaStatus
+
+    data class Progress(val positionMillis: Long, val durationMillis: Long) : CastMediaStatus
+
+    data object Finished : CastMediaStatus
+
+    data object Failed : CastMediaStatus
 }
 
 data class CastMedia(val url: String, val contentType: String, val title: String)
