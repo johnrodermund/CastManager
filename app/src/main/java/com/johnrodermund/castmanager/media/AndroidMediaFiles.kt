@@ -2,11 +2,14 @@ package com.johnrodermund.castmanager.media
 
 import android.content.ContentResolver
 import android.content.Context
+import android.media.MediaExtractor
+import android.media.MediaMetadataRetriever
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
 import android.provider.OpenableColumns
 import java.io.FileNotFoundException
+import java.io.IOException
 import java.net.Inet4Address
 
 /** Reads the details of a file from the Android file picker. Returns null if they can't be read. */
@@ -18,6 +21,27 @@ fun ContentResolver.mediaFile(uri: Uri): MediaFile? {
         MediaFile(cursor.getString(0), contentType, cursor.getLong(1)) {
             openInputStream(uri) ?: throw FileNotFoundException(uri.toString())
         }
+    }
+}
+
+/** Reads the format of a file from the Android file picker. Returns null if it can't be inspected. */
+fun Context.mediaFormat(uri: Uri, contentType: String): MediaFormat? {
+    val extractor = MediaExtractor()
+    val retriever = MediaMetadataRetriever()
+    return try {
+        extractor.setDataSource(this, uri, null)
+        retriever.setDataSource(this, uri)
+        val tracks = (0 until extractor.trackCount).mapNotNull {
+            extractor.getTrackFormat(it).getString(android.media.MediaFormat.KEY_MIME)
+        }
+        MediaFormat(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_MIMETYPE) ?: contentType, tracks)
+    } catch (_: IOException) {
+        null
+    } catch (_: RuntimeException) {
+        null // MediaMetadataRetriever throws these for files it can't parse.
+    } finally {
+        extractor.release()
+        retriever.release()
     }
 }
 

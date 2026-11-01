@@ -2,6 +2,7 @@ package com.johnrodermund.castmanager
 
 import android.Manifest
 import android.os.Bundle
+import android.view.KeyEvent
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -16,6 +17,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.johnrodermund.castmanager.cast.CastButton
 import com.johnrodermund.castmanager.playback.PlaybackStatus
 import com.johnrodermund.castmanager.ui.MainScreen
+import com.johnrodermund.castmanager.ui.MainScreenActions
 
 class MainActivity : AppCompatActivity() {
     private val viewModel: MainViewModel by viewModels()
@@ -42,10 +44,35 @@ class MainActivity : AppCompatActivity() {
             MaterialTheme(colorScheme = colors) {
                 MainScreen(
                     state = state,
-                    onChooseMediaFile = { filePicker.launch(arrayOf("video/*", "audio/*")) },
+                    actions = MainScreenActions(
+                        chooseMediaFile = { filePicker.launch(arrayOf("video/*", "audio/*")) },
+                        castAnyway = viewModel::castAnyway,
+                        cancelMediaFile = viewModel::cancelMediaFile,
+                        play = viewModel::play,
+                        pause = viewModel::pause,
+                        seekTo = viewModel::seekTo,
+                        stop = viewModel::stop,
+                        setVolume = viewModel::setVolume,
+                    ),
                     castButton = { CastButton() },
                 )
             }
         }
+    }
+
+    /** During a Cast Session, the phone's volume buttons change the Cast Device's volume. */
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val change = when (event.keyCode) {
+            KeyEvent.KEYCODE_VOLUME_UP -> VOLUME_STEP
+            KeyEvent.KEYCODE_VOLUME_DOWN -> -VOLUME_STEP
+            else -> return super.dispatchKeyEvent(event)
+        }
+        if (viewModel.state.value.connectedDevice == null) return super.dispatchKeyEvent(event)
+        if (event.action == KeyEvent.ACTION_DOWN) viewModel.changeVolume(change)
+        return true
+    }
+
+    private companion object {
+        const val VOLUME_STEP = 0.05f
     }
 }

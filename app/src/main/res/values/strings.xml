@@ -7,7 +7,18 @@
     <string name="choose_media_file">Choose a Media File</string>
     <string name="connect_to_play">Connect to a Cast Device to play this Media File.</string>
     <string name="local_network_denied">Casting can\'t work without the local network permission, because the Cast Device gets the Media File from this phone. Allow Nearby devices for CastManager in Settings, then choose the Media File again.</string>
+    <string name="risky_format">This may not play. Cast anyway?</string>
+    <string name="cast_anyway">Cast anyway</string>
+    <string name="cancel">Cancel</string>
     <string name="playback_loading">Loading…</string>
     <string name="playback_playing">Playing</string>
-    <string name="playback_failed">The Media File couldn\'t be played.</string>
+    <string name="playback_paused">Paused</string>
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+    <string name="stop">Stop</string>
+    <string name="volume">Volume</string>
+    <string name="position">%1$s / %2$s</string>
+    <string name="media_file_unreadable">This Media File can\'t be read. Choose another one.</string>
+    <string name="not_on_wifi">This phone isn\'t on Wi-Fi. Connect to the same Wi-Fi as the Cast Device, then choose the Media File again.</string>
+    <string name="playback_failed">The Cast Device couldn\'t play this Media File.</string>
 </resources>
