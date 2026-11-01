@@ -3,7 +3,11 @@
     <string name="app_name">CastManager</string>
     <string name="not_connected">Not connected. Use the Cast button to find a Cast Device.</string>
     <string name="connected_to">Connected to %1$s</string>
-    <string name="playback_loading">Loading the sample video…</string>
-    <string name="playback_playing">Playing the sample video</string>
-    <string name="playback_failed">The sample video couldn\'t be played.</string>
+    <string name="media_file">Media File: %1$s</string>
+    <string name="choose_media_file">Choose a Media File</string>
+    <string name="connect_to_play">Connect to a Cast Device to play this Media File.</string>
+    <string name="local_network_denied">Casting can\'t work without the local network permission, because the Cast Device gets the Media File from this phone. Allow Nearby devices for CastManager in Settings, then choose the Media File again.</string>
+    <string name="playback_loading">Loading…</string>
+    <string name="playback_playing">Playing</string>
+    <string name="playback_failed">The Media File couldn\'t be played.</string>
 </resources>
