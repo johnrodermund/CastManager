@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">CastManager</string>
+    <string name="not_connected">Not connected. Use the Cast button to find a Cast Device.</string>
+    <string name="connected_to">Connected to %1$s</string>
+    <string name="playback_loading">Loading the sample video…</string>
+    <string name="playback_playing">Playing the sample video</string>
+    <string name="playback_failed">The sample video couldn\'t be played.</string>
+</resources>
