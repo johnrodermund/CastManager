@@ -17,6 +17,9 @@
     <string name="pause">Pause</string>
     <string name="stop">Stop</string>
     <string name="volume">Volume</string>
+    <string name="playback_channel">Playback</string>
+    <string name="notification_playing">Playing on %1$s</string>
+    <string name="notification_paused">Paused on %1$s</string>
     <string name="position">%1$s / %2$s</string>
     <string name="media_file_unreadable">This Media File can\'t be read. Choose another one.</string>
     <string name="not_on_wifi">This phone isn\'t on Wi-Fi. Connect to the same Wi-Fi as the Cast Device, then choose the Media File again.</string>
