@@ -33,6 +33,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.ktor.server.auto.head.response)
+    implementation(libs.ktor.server.cio)
+    implementation(libs.ktor.server.partial.content)
     implementation(libs.play.services.cast.framework)
 
     testImplementation(libs.junit)
