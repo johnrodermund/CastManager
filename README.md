@@ -17,6 +17,8 @@ Needs JDK 17 or newer and the Android SDK with platform 37. Set `sdk.dir` in `lo
 ./gradlew test
 ```
 
+GitHub Actions runs the same build and tests on every pull request and on each push to `master`.
+
 All Cast SDK use stays in the `cast` package, behind `CastSessionGateway`. Playback Controller tests replace it with `FakeCastSession`, so they run on the JVM. Cast isn't reliable on emulators, so test Cast behaviour by hand on a physical phone and a Cast Device.
 
 ## Future features
