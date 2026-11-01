@@ -88,7 +88,7 @@ class GoogleCastSessionGateway(context: Context) : CastSessionGateway {
     }
 
     private fun CastMedia.toMediaInfo(): MediaInfo {
-        val metadata = MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE)
+        val metadata = MediaMetadata(MediaMetadata.MEDIA_TYPE_GENERIC)
         metadata.putString(MediaMetadata.KEY_TITLE, title)
         return MediaInfo.Builder(url)
             .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
