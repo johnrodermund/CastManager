@@ -2,6 +2,7 @@ package com.johnrodermund.castmanager.playback
 
 import com.johnrodermund.castmanager.cast.CastConnection
 import com.johnrodermund.castmanager.cast.CastMedia
+import com.johnrodermund.castmanager.cast.CastMediaStatus
 import com.johnrodermund.castmanager.cast.CastSessionGateway
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,9 +12,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 val SampleMedia = CastMedia(
-    url = "https://media.w3.org/2010/05/sintel/trailer.mp4",
+    url = "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
     contentType = "video/mp4",
-    title = "Sintel trailer",
+    title = "Flower",
 )
 
 data class PlaybackState(
@@ -44,9 +45,14 @@ class PlaybackController(
 
     private suspend fun play(connection: CastConnection.Connected) {
         _state.value = PlaybackState(connection.deviceName, PlaybackStatus.Loading)
-        val accepted = gateway.load(SampleMedia)
-        _state.update {
-            it.copy(playback = if (accepted) PlaybackStatus.Playing else PlaybackStatus.Failed)
+        gateway.load(SampleMedia).collect { status ->
+            _state.update { it.copy(playback = status.toPlaybackStatus()) }
         }
+    }
+
+    private fun CastMediaStatus.toPlaybackStatus() = when (this) {
+        CastMediaStatus.Playing -> PlaybackStatus.Playing
+        CastMediaStatus.Finished -> PlaybackStatus.None
+        CastMediaStatus.Failed -> PlaybackStatus.Failed
     }
 }
