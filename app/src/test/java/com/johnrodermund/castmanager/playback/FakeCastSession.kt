@@ -16,6 +16,11 @@ import kotlinx.coroutines.flow.transformWhile
 class FakeCastSession : CastSessionGateway {
     override val connection = MutableStateFlow<CastConnection>(CastConnection.Disconnected)
 
+    override val volume = MutableStateFlow(1f)
+
+    /** The commands the app sent, in order. */
+    val commands = mutableListOf<String>()
+
     private val loaded = MutableStateFlow(emptyList<CastMedia>())
     private var statuses = Channel<CastMediaStatus>(Channel.UNLIMITED)
 
@@ -28,9 +33,29 @@ class FakeCastSession : CastSessionGateway {
         current.receiveAsFlow()
             .transformWhile { status ->
                 emit(status)
-                status == CastMediaStatus.Playing
+                status != CastMediaStatus.Finished && status != CastMediaStatus.Failed
             }
             .collect(::emit)
+    }
+
+    override fun play() {
+        commands += "play"
+    }
+
+    override fun pause() {
+        commands += "pause"
+    }
+
+    override fun seekTo(positionMillis: Long) {
+        commands += "seek $positionMillis"
+    }
+
+    override fun stop() {
+        commands += "stop"
+    }
+
+    override fun setVolume(volume: Float) {
+        this.volume.value = volume
     }
 
     /** Waits for load number [number], counting from 1. */
