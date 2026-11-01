@@ -2,21 +2,24 @@ package com.johnrodermund.castmanager.playback
 
 import com.johnrodermund.castmanager.cast.CastConnection
 import com.johnrodermund.castmanager.cast.CastMedia
+import com.johnrodermund.castmanager.cast.CastMediaStatus
 import com.johnrodermund.castmanager.cast.CastSessionGateway
-import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 
-/** Stands in for a Cast Device. Each load waits until the test calls [finishLoad]. */
+/** Stands in for a Cast Device. A load reports nothing until the test calls [report]. */
 class FakeCastSession : CastSessionGateway {
     override val connection = MutableStateFlow<CastConnection>(CastConnection.Disconnected)
 
     val loaded = mutableListOf<CastMedia>()
-    private var pendingLoad = CompletableDeferred<Boolean>()
+    private val statuses = MutableSharedFlow<CastMediaStatus>(extraBufferCapacity = 1)
 
-    override suspend fun load(media: CastMedia): Boolean {
+    override fun load(media: CastMedia): Flow<CastMediaStatus> = flow {
         loaded += media
-        pendingLoad = CompletableDeferred()
-        return pendingLoad.await()
+        emitAll(statuses)
     }
 
     fun connect(deviceName: String) {
@@ -27,7 +30,7 @@ class FakeCastSession : CastSessionGateway {
         connection.value = CastConnection.Disconnected
     }
 
-    fun finishLoad(accepted: Boolean) {
-        pendingLoad.complete(accepted)
+    fun report(status: CastMediaStatus) {
+        statuses.tryEmit(status)
     }
 }

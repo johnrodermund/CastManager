@@ -3,13 +3,16 @@ package com.johnrodermund.castmanager.cast
 import android.content.Context
 import com.google.android.gms.cast.MediaInfo
 import com.google.android.gms.cast.MediaMetadata
+import com.google.android.gms.cast.MediaStatus
 import com.google.android.gms.cast.framework.CastContext
 import com.google.android.gms.cast.framework.CastSession
 import com.google.android.gms.cast.framework.SessionManagerListener
-import kotlin.coroutines.resume
+import com.google.android.gms.cast.framework.media.RemoteMediaClient
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.flow.callbackFlow
 
 class GoogleCastSessionGateway(context: Context) : CastSessionGateway {
     private val sessionManager = CastContext.getSharedInstance(context).sessionManager
@@ -32,13 +35,39 @@ class GoogleCastSessionGateway(context: Context) : CastSessionGateway {
         sessionManager.addSessionManagerListener(listener, CastSession::class.java)
     }
 
-    override suspend fun load(media: CastMedia): Boolean {
-        val client = sessionManager.currentCastSession?.remoteMediaClient ?: return false
-        return suspendCancellableCoroutine { continuation ->
-            client.load(media.toMediaInfo()).setResultCallback { result ->
-                continuation.resume(result.status.isSuccess)
+    override fun load(media: CastMedia): Flow<CastMediaStatus> = callbackFlow {
+        val client = sessionManager.currentCastSession?.remoteMediaClient
+        if (client == null) {
+            send(CastMediaStatus.Failed)
+            close()
+            return@callbackFlow
+        }
+        val callback = object : RemoteMediaClient.Callback() {
+            override fun onStatusUpdated() {
+                when (client.playerState) {
+                    MediaStatus.PLAYER_STATE_PLAYING -> trySend(CastMediaStatus.Playing)
+                    MediaStatus.PLAYER_STATE_IDLE -> when (client.idleReason) {
+                        MediaStatus.IDLE_REASON_ERROR -> finish(CastMediaStatus.Failed)
+                        MediaStatus.IDLE_REASON_FINISHED,
+                        MediaStatus.IDLE_REASON_CANCELED -> finish(CastMediaStatus.Finished)
+                    }
+                }
+            }
+
+            private fun finish(status: CastMediaStatus) {
+                trySend(status)
+                close()
             }
         }
+        client.registerCallback(callback)
+        // Success only means the receiver took the request. The file can still fail, which arrives as a status.
+        client.load(media.toMediaInfo()).setResultCallback { result ->
+            if (!result.status.isSuccess) {
+                trySend(CastMediaStatus.Failed)
+                close()
+            }
+        }
+        awaitClose { client.unregisterCallback(callback) }
     }
 
     fun close() {
