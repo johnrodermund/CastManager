@@ -26,3 +26,7 @@ All Cast SDK use stays in the `cast` package, behind `CastSessionGateway`. Playb
 - Play from pasted URLs
 - Play from other sources, such as network shares and media servers
 - Subtitles and audio track selection
+
+## License
+
+MIT. See `LICENSE`.
