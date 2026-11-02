@@ -39,6 +39,9 @@ enum class PlaybackStatus {
     Failed,
 }
 
+val PlaybackState.isPlaybackActive: Boolean
+    get() = playback == PlaybackStatus.Loading || playback == PlaybackStatus.Playing || playback == PlaybackStatus.Paused
+
 /** Starts Playback once a Cast Session and a Media File are both set, and ends it. */
 class PlaybackController(
     private val gateway: CastSessionGateway,
@@ -72,6 +75,7 @@ class PlaybackController(
 
     /** Replaces the current Media File, if there is one. */
     fun chooseMediaFile(file: MediaFile, risk: FormatRisk = FormatRisk.Safe) {
+        mediaFile?.release?.invoke()
         mediaFile = file
         unconfirmedRisk = risk == FormatRisk.Risky
         _state.update {
@@ -129,9 +133,7 @@ class PlaybackController(
 
     private fun onDisconnected() {
         playbackJob?.cancel()
-        val hadPlayback = _state.value.playback in
-            setOf(PlaybackStatus.Loading, PlaybackStatus.Playing, PlaybackStatus.Paused)
-        if (hadPlayback) endPlayback(PlaybackStatus.None)
+        if (_state.value.isPlaybackActive) endPlayback(PlaybackStatus.None)
         _state.update { it.copy(connectedDevice = null, playback = PlaybackStatus.None) }
     }
 
@@ -191,6 +193,7 @@ class PlaybackController(
     }
 
     private fun endPlayback(status: PlaybackStatus) {
+        mediaFile?.release?.invoke()
         mediaFile = null
         unconfirmedRisk = false
         _state.update {
