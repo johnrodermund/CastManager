@@ -1,20 +1,13 @@
 package com.johnrodermund.castmanager
 
-import android.Manifest
 import android.app.Application
-import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.johnrodermund.castmanager.cast.GoogleCastSessionGateway
 import com.johnrodermund.castmanager.media.FormatCheck
 import com.johnrodermund.castmanager.media.FormatRisk
-import com.johnrodermund.castmanager.media.MediaServer
 import com.johnrodermund.castmanager.media.mediaFile
 import com.johnrodermund.castmanager.media.mediaFormat
-import com.johnrodermund.castmanager.media.wifiAddress
-import com.johnrodermund.castmanager.playback.PlaybackController
 import com.johnrodermund.castmanager.playback.PlaybackState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
@@ -22,15 +15,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
-    private val gateway = GoogleCastSessionGateway(application)
-    private val controller = PlaybackController(
-        gateway = gateway,
-        mediaServer = MediaServer(hostAddress = application::wifiAddress),
-        localNetworkAllowed = ::localNetworkAllowed,
-        scope = viewModelScope,
-    )
+    private val controller = (application as CastManagerApp).playbackController
 
     val state: StateFlow<PlaybackState> = controller.state
+
+    /** Android only lets the app ask a few times, so it asks once each time the app opens. */
+    var askedForNotifications = false
 
     fun onMediaFileChosen(uri: Uri) {
         val application = getApplication<Application>()
@@ -62,17 +52,4 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setVolume(volume: Float) = controller.setVolume(volume)
 
     fun changeVolume(change: Float) = controller.changeVolume(change)
-
-    private fun localNetworkAllowed(): Boolean =
-        Build.VERSION.SDK_INT < LOCAL_NETWORK_PERMISSION_SDK ||
-            getApplication<Application>().checkSelfPermission(Manifest.permission.ACCESS_LOCAL_NETWORK) ==
-            PackageManager.PERMISSION_GRANTED
-
-    override fun onCleared() {
-        gateway.close()
-    }
-
-    private companion object {
-        const val LOCAL_NETWORK_PERMISSION_SDK = 37
-    }
 }

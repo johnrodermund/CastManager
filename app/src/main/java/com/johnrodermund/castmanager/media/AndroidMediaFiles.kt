@@ -2,6 +2,7 @@ package com.johnrodermund.castmanager.media
 
 import android.content.ContentResolver
 import android.content.Context
+import android.content.Intent
 import android.media.MediaExtractor
 import android.media.MediaMetadataRetriever
 import android.net.ConnectivityManager
@@ -18,9 +19,32 @@ fun ContentResolver.mediaFile(uri: Uri): MediaFile? {
     val columns = arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE)
     return query(uri, columns, null, null, null)?.use { cursor ->
         if (!cursor.moveToFirst() || cursor.isNull(1)) return null
-        MediaFile(cursor.getString(0), contentType, cursor.getLong(1)) {
+        holdAccess(uri)
+        MediaFile(cursor.getString(0), contentType, cursor.getLong(1), release = { releaseAccess(uri) }) {
             openInputStream(uri) ?: throw FileNotFoundException(uri.toString())
         }
+    }
+}
+
+/** Releases access that an earlier Playback kept, so the app holds no record of past files. */
+fun ContentResolver.releaseAllMediaFiles() {
+    persistedUriPermissions.forEach { releaseAccess(it.uri) }
+}
+
+// The picker's access ends with the Activity that asked, but Playback outlives the Activity.
+private fun ContentResolver.holdAccess(uri: Uri) {
+    try {
+        takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    } catch (_: SecurityException) {
+        // Not every provider offers this. Playback still works until the app is swiped away.
+    }
+}
+
+private fun ContentResolver.releaseAccess(uri: Uri) {
+    try {
+        releasePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    } catch (_: SecurityException) {
+        // There was no access to release.
     }
 }
 

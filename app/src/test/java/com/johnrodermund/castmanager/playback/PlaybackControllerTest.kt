@@ -29,8 +29,12 @@ class PlaybackControllerTest {
     private val film = mediaFile("film.mp4", "video/mp4")
     private val song = mediaFile("song.mp3", "audio/mpeg")
 
+    private val released = mutableListOf<String>()
+
     private fun mediaFile(name: String, contentType: String) =
-        MediaFile(name, contentType, 4) { ByteArrayInputStream(byteArrayOf(1, 2, 3, 4)) }
+        MediaFile(name, contentType, 4, release = { released += name }) {
+            ByteArrayInputStream(byteArrayOf(1, 2, 3, 4))
+        }
 
     private fun runControllerTest(body: suspend TestScope.(PlaybackController) -> Unit) =
         runTest(UnconfinedTestDispatcher()) {
@@ -411,6 +415,66 @@ class PlaybackControllerTest {
         assertEquals(listOf("stop"), castSession.commands)
         assertEquals(PlaybackStatus.RiskyFormat, controller.state.value.playback)
         awaitNotServed(url)
+    }
+
+    @Test
+    fun `Playback is active only from Loading to the end`() {
+        val active = PlaybackStatus.entries.filter { PlaybackState(playback = it).isPlaybackActive }
+
+        assertEquals(listOf(PlaybackStatus.Loading, PlaybackStatus.Playing, PlaybackStatus.Paused), active)
+    }
+
+    @Test
+    fun `the Media File is held during Playback`() = runControllerTest { controller ->
+        startPlaying(controller)
+
+        assertEquals(emptyList<String>(), released)
+    }
+
+    @Test
+    fun `Stop releases the Media File`() = runControllerTest { controller ->
+        startPlaying(controller)
+
+        controller.stop()
+
+        assertEquals(listOf("film.mp4"), released)
+    }
+
+    @Test
+    fun `the end of the file releases the Media File`() = runControllerTest { controller ->
+        startPlaying(controller)
+
+        castSession.report(CastMediaStatus.Finished)
+        controller.state.first { it.mediaFileName == null }
+
+        assertEquals(listOf("film.mp4"), released)
+    }
+
+    @Test
+    fun `disconnecting releases the Media File`() = runControllerTest { controller ->
+        startPlaying(controller)
+
+        castSession.disconnect()
+        controller.state.first { it.mediaFileName == null }
+
+        assertEquals(listOf("film.mp4"), released)
+    }
+
+    @Test
+    fun `a replacement releases only the old Media File`() = runControllerTest { controller ->
+        startPlaying(controller)
+
+        controller.chooseMediaFile(song)
+        castSession.awaitLoad(number = 2)
+
+        assertEquals(listOf("film.mp4"), released)
+    }
+
+    @Test
+    fun `a Media File waiting for a Cast Session stays held`() = runControllerTest { controller ->
+        controller.chooseMediaFile(film)
+
+        assertEquals(emptyList<String>(), released)
     }
 
     @Test

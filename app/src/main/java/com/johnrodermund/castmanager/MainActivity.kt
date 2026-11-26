@@ -1,6 +1,9 @@
 package com.johnrodermund.castmanager
 
 import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.compose.setContent
@@ -15,7 +18,9 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.johnrodermund.castmanager.cast.CastButton
+import com.johnrodermund.castmanager.playback.PlaybackService
 import com.johnrodermund.castmanager.playback.PlaybackStatus
+import com.johnrodermund.castmanager.playback.isPlaybackActive
 import com.johnrodermund.castmanager.ui.MainScreen
 import com.johnrodermund.castmanager.ui.MainScreenActions
 
@@ -30,6 +35,13 @@ class MainActivity : AppCompatActivity() {
         viewModel.onLocalNetworkAnswer(allowed)
     }
 
+    private val notificationRequest = registerForActivityResult(ActivityResultContracts.RequestPermission()) { allowed ->
+        // The service's first notification was dropped while this was unanswered, so it has to post it again.
+        if (allowed && viewModel.state.value.isPlaybackActive) {
+            startForegroundService(Intent(this, PlaybackService::class.java))
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -40,6 +52,7 @@ class MainActivity : AppCompatActivity() {
                 if (state.playback == PlaybackStatus.NeedsLocalNetwork) {
                     localNetworkRequest.launch(Manifest.permission.ACCESS_LOCAL_NETWORK)
                 }
+                if (state.isPlaybackActive) askForNotifications()
             }
             MaterialTheme(colorScheme = colors) {
                 MainScreen(
@@ -58,6 +71,14 @@ class MainActivity : AppCompatActivity() {
                 )
             }
         }
+    }
+
+    /** Playback works without the notification, so the answer doesn't matter. */
+    private fun askForNotifications() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || viewModel.askedForNotifications) return
+        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return
+        viewModel.askedForNotifications = true
+        notificationRequest.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
 
     /** During a Cast Session, the phone's volume buttons change the Cast Device's volume. */
